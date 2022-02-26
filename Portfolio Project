@@ -1,0 +1,266 @@
+-- COVID Analysis (01.01.2020 to 21.02.2022)
+-- The data was taken from https://ourworldindata.org/ on 22.02.2022
+
+-- Overall look on the dataset order by date
+SELECT *
+FROM PortfolioProjects..covid_data
+ORDER BY date
+
+SELECT location, MAX(CAST(total_vaccinations AS bigint)) AS total_vac
+FROM PortfolioProjects..covid_data
+WHERE continent IS NOT NULL
+GROUP BY location
+ORDER BY total_vac
+DESC
+
+-- Identifying the date of first case recorded
+--SELECT *
+--FROM PortfolioProjects..covid_data
+--WHERE total_cases IS NOT NULL
+--ORDER BY 4
+-- First case recorded was on 22.01.2022 in North America
+
+
+-- Identifying the date of first death recorded
+--SELECT *
+--FROM PortfolioProjects..covid_data
+--WHERE total_deaths IS NOT NULL
+--ORDER BY 4
+
+
+-- Data that will be used:
+-- Location, date, total_cases, new_cases, total_deaths, new_deaths, population, total_vaccinations
+
+SELECT location, date, total_cases, new_cases, total_deaths, new_deaths, total_vaccinations, new_vaccinations, population
+FROM PortfolioProjects..covid_data
+ORDER BY location, date
+
+
+-- COVID Analysis on Singapore
+
+-- 1. Total Cases vs Population
+SELECT location, date, population, total_cases, (total_cases/population)*100 AS infection_rate
+FROM PortfolioProjects..covid_data
+--WHERE location LIKE 'Singapore'
+ORDER BY date
+
+
+-- 2. Total Cases vs Total Deaths
+SELECT location, date, total_cases, total_deaths, (total_deaths/total_cases)*100 AS death_percentage
+FROM PortfolioProjects..covid_data
+WHERE location LIKE 'Singapore'
+ORDER BY date
+
+
+-- 3. Total Vaccinations vs Population
+SELECT location, date, population, total_vaccinations, (total_vaccinations/population)*100 AS vaccination_percentage
+FROM PortfolioProjects..covid_data
+WHERE location LIKE 'Singapore'
+ORDER BY date
+
+
+-- COVID Analysis by Locations (Countries)
+-- 4. Current total cases, total deaths and total vaccinations of all locations (as of 21.02.2022)
+SELECT location
+, MAX(CAST(total_cases AS int)) AS current_total_cases
+, MAX(CAST(total_deaths AS int)) AS current_total_deaths
+, MAX(CAST(total_vaccinations AS bigint)) AS current_total_vaccinations
+--, MAX(CAST(population AS bigint)) AS current_population
+--, (MAX(CAST(total_cases AS int))/MAX(population))*100 AS current_infection_percentage
+FROM PortfolioProjects..covid_data
+WHERE continent IS NOT NULL
+AND location NOT IN ('world', 'international', 'low income', 'lower middle income', 'upper middle income', 'high income')
+GROUP BY location
+ORDER BY current_total_cases
+DESC
+
+
+-- 5. Infection rates of all countries
+SELECT location
+, population
+, MAX(CAST(total_cases AS int)) AS current_total_cases
+, MAX((CAST(total_cases AS int))/population)*100 AS infection_rate
+FROM PortfolioProjects..covid_data
+WHERE continent IS NOT NULL
+AND location NOT IN ('world', 'international', 'low income', 'lower middle income', 'upper middle income', 'high income')
+GROUP BY location, population
+ORDER BY infection_rate
+DESC
+-- Faeroe Islands have the highest infection rate (65.3252604325933%)
+
+
+-- 6. Death rate per population of all countries
+SELECT location
+, population
+--, MAX(CAST(total_cases AS int)) AS current_total_cases
+, MAX(CAST(total_deaths AS int)) AS current_total_deaths
+--, MAX(CAST(total_deaths AS int)/CAST(total_cases AS int)) AS death_rate
+, (MAX(CAST(total_deaths AS int))/population)*100 AS death_rate_per_population
+FROM PortfolioProjects..covid_data
+WHERE continent IS NOT NULL
+AND location NOT IN ('world', 'international', 'low income', 'lower middle income', 'upper middle income', 'high income')
+GROUP BY location, population
+ORDER BY death_rate_per_population
+DESC
+-- Peru has the highest death rate per population
+
+
+-- COVID Analysis by Continents
+
+-- 7. Current total cases and total deaths of all continents (as of 21.02.2022)
+SELECT continent
+, MAX(CAST(total_cases AS int)) AS current_total_cases
+, MAX(CAST(total_deaths AS int)) AS current_total_deaths
+--, SUM(CAST(population AS bigint)) AS current_population
+--, (MAX(CAST(total_cases AS int))/MAX(population))*100 AS current_infection_percentage
+FROM PortfolioProjects..covid_data
+WHERE continent IS NOT NULL
+GROUP BY continent
+ORDER BY current_total_cases
+DESC
+-- North America has the highest current_total_cases as of 21.02.2022
+
+
+-- 8. Current total vaccinations of all continents (as of 21.02.2022)
+SELECT continent
+, MAX(CAST(total_vaccinations AS bigint)) AS current_total_vaccinations
+--, SUM(CAST(population AS bigint)) AS current_population
+FROM PortfolioProjects..covid_data
+WHERE continent IS NOT NULL
+GROUP BY continent
+ORDER BY current_total_vaccinations
+DESC
+-- Asia has the highest current_total_vaccinations
+
+
+-- COVID Analysis Globally 
+-- 9. Global numbers
+SELECT date
+, SUM(new_cases) AS total_new_cases
+, SUM(CAST(new_deaths AS int)) AS total_new_deaths
+, SUM(CAST(new_deaths AS int))/SUM(new_cases)*100 AS total_new_deaths_percentage
+FROM PortfolioProjects..covid_data
+WHERE continent IS NOT NULL
+GROUP BY date
+ORDER BY date, total_new_cases
+
+
+-- 10. Total new cases, new deaths and new death percentage
+SELECT SUM(new_cases) AS total_new_cases
+, SUM(CAST(new_deaths AS int)) AS total_new_deaths
+, SUM(CAST(new_deaths AS int))/SUM(new_cases)*100 AS total_new_death_percentage
+FROM PortfolioProjects..covid_data
+WHERE continent IS NOT NULL
+ORDER BY 1,2
+
+
+-- 11. Total Population vs Vaccinations
+SELECT continent
+, location
+, date
+, population
+, CAST(new_vaccinations AS int) AS new_vaccinations
+FROM PortfolioProjects..covid_data
+WHERE continent IS NOT NULL
+ORDER BY 1, 2, 5
+
+
+-- 12. Cumulative New Vaccinations
+SELECT continent
+, location
+, date
+, population
+, new_vaccinations
+, SUM(CONVERT(bigint, new_vaccinations)) OVER 
+	(PARTITION BY location 
+	ORDER BY location, date) 
+	AS cumulative_new_vaccinations
+FROM PortfolioProjects..covid_data
+WHERE continent IS NOT NULL
+
+-- Bonus: Cumulative new vaccinations in Singapore
+SELECT continent
+, location
+, date
+, population
+, new_vaccinations
+, SUM(CONVERT(bigint, new_vaccinations)) OVER 
+	(PARTITION BY location 
+	ORDER BY location, date) 
+	AS cumulative_new_vaccinations
+FROM PortfolioProjects..covid_data
+WHERE continent IS NOT NULL
+AND location LIKE 'Singapore'
+
+
+-- Using Common Table Expression (CTE) to inspect new vaccinations percentage
+WITH Population_VS_Vaccinations (Continent, Location, Date, Population, New_Vaccinations, Cumulative_New_Vaccinations)
+AS (SELECT continent, 
+			location, 
+			date, 
+			population, 
+			new_vaccinations,
+			SUM(CONVERT(bigint, new_vaccinations)) OVER (PARTITION BY location ORDER BY location, date) AS cumulative_new_vaccinations
+	FROM PortfolioProjects..covid_data
+	WHERE continent IS NOT NULL
+)
+SELECT *, (Cumulative_New_Vaccinations/Population)*100 AS New_Vaccinations_Percent
+FROM Population_VS_Vaccinations
+
+WITH Population_VS_Vaccinations (Continent, Location, Date, Population, New_Vaccinations, Cumulative_New_Vaccinations)
+AS (SELECT continent, 
+			location, 
+			date, 
+			population, 
+			new_vaccinations,
+			SUM(CONVERT(bigint, new_vaccinations)) OVER (PARTITION BY location ORDER BY location, date) AS cumulative_new_vaccinations
+	FROM PortfolioProjects..covid_data
+	WHERE continent IS NOT NULL
+)
+SELECT *, (Cumulative_New_Vaccinations/Population)*100 AS New_Vaccinations_Percent
+FROM Population_VS_Vaccinations
+WHERE location LIKE 'Singapore'
+
+
+-- Using Temp Table
+DROP TABLE IF EXISTS #Percent_Population_Vaccinated
+CREATE TABLE #Percent_Population_Vaccinated
+(
+Continent nvarchar(255), 
+Location nvarchar(255), 
+Date datetime, 
+Population numeric, 
+New_Vaccinations numeric, 
+Cumulative_New_Vaccinations numeric
+)
+
+INSERT INTO #Percent_Population_Vaccinated
+SELECT continent, 
+location, 
+date, 
+population, 
+CONVERT(bigint, new_vaccinations), -- Have to convert to bigint as the value exceeds 2^31
+SUM(CONVERT(bigint, new_vaccinations)) OVER (PARTITION BY location ORDER BY location, date) AS cumulative_new_vaccinations
+FROM PortfolioProjects..covid_data
+WHERE continent IS NOT NULL
+-- ORDER BY 2,3
+
+SELECT *, (Cumulative_New_Vaccinations/Population)*100 AS New_Vaccinations_Percent
+FROM #Percent_Population_Vaccinated
+
+
+-- Creating view to store data for visualisations
+CREATE VIEW Percent_Population_Vaccinated AS
+SELECT continent
+, location 
+, date
+, population
+, CONVERT(bigint, new_vaccinations) AS new_vaccinations
+, SUM(CONVERT(bigint, new_vaccinations)) OVER (PARTITION BY location ORDER BY location, date) AS cumulative_new_vaccinations
+FROM PortfolioProjects..covid_data
+WHERE continent IS NOT NULL
+
+DROP VIEW IF EXISTS Percent_Population_Vaccinated
+
+SELECT * 
+FROM Percent_Population_Vaccinated
