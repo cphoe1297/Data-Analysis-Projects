@@ -1,0 +1,209 @@
+Divvy Trips 2021 Analysis
+
+# Step 1 : Collect Data
+
+# Loading packages
+library(tidyverse) # for data import and wrangling
+library(ggplot2) # for visualization
+library(readr) # to read the csv files
+library(skimr) # to skim the date
+library(lubridate) # for date functions
+library(dplyr) # for dplyr functions
+
+
+# Upload csv files
+M01_2021 <- read.csv("../input/divvytrips2021/202101-divvy-tripdata.csv")
+M02_2021 <- read.csv("../input/divvytrips2021/202102-divvy-tripdata.csv")
+M03_2021 <- read.csv("../input/divvytrips2021/202103-divvy-tripdata.csv")
+M04_2021 <- read.csv("../input/divvytrips2021/202104-divvy-tripdata.csv")
+M05_2021 <- read.csv("../input/divvytrips2021/202105-divvy-tripdata.csv")
+M06_2021 <- read.csv("../input/divvytrips2021/202106-divvy-tripdata.csv")
+M07_2021 <- read.csv("../input/divvytrips2021/202107-divvy-tripdata.csv")
+M08_2021 <- read.csv("../input/divvytrips2021/202108-divvy-tripdata.csv")
+M09_2021 <- read.csv("../input/divvytrips2021/202109-divvy-tripdata.csv")
+M10_2021 <- read.csv("../input/divvytrips2021/202110-divvy-tripdata.csv")
+M11_2021 <- read.csv("../input/divvytrips2021/202111-divvy-tripdata.csv")
+M12_2021 <- read.csv("../input/divvytrips2021/202112-divvy-tripdata.csv")
+
+
+# Step 2: Wrangle Data and Combine Into a Single File
+
+# Compare column names each of the files so that they are all consistent for combining into a single data frame
+colnames(M01_2021)
+colnames(M02_2021)
+colnames(M03_2021)
+colnames(M04_2021)
+colnames(M05_2021)
+colnames(M06_2021)
+colnames(M07_2021)
+colnames(M08_2021)
+colnames(M09_2021)
+colnames(M10_2021)
+colnames(M11_2021)
+colnames(M12_2021)
+
+
+# Inspect the dataframes and look for incongruencies before we proceed to combine them into a big data frame for analysis
+str(M01_2021)
+str(M02_2021)
+str(M03_2021)
+str(M04_2021)
+str(M05_2021)
+str(M06_2021)
+str(M07_2021)
+str(M08_2021)
+str(M09_2021)
+str(M10_2021)
+str(M11_2021)
+str(M12_2021)
+
+# Stack individual month's data frames into one big data frame
+all_trips <- bind_rows(M01_2021,M02_2021,M03_2021,M04_2021,M05_2021,M06_2021,M07_2021,M08_2021,M09_2021,M10_2021,M11_2021,M12_2021)
+
+# Glimpse the new data frame
+head(all_trips)
+
+# Remove irrelevant columns
+# The columns start_lat, start_lng, end_lat, end_lng are irrelevant to our analysis so we will remove them
+all_trips_new <- all_trips %>% 
+  select(-c(start_lat, start_lng, end_lat, end_lng))
+head(all_trips_new)
+
+# Step 3 : Clean Up and Add Data to Prepare for Analysis
+
+# Inspect the new table that has been created
+colnames(all_trips_new)  # List of column names
+nrow(all_trips_new)  # How many rows are in data frame?
+dim(all_trips_new)  # Dimensions of the data frame?
+head(all_trips_new)  # See the first 6 rows of data frame.  
+tail(all_trips_new)  # See the last 6 rows of data frame.
+str(all_trips_new)  # See list of columns and data types (numeric, character, etc)
+skim(all_trips_new) # Skim through the data frame
+summary(all_trips_new)  # Statistical summary of data. Mainly for numerics
+
+From the above step, we can have some observations regarding the data frame:
+1. There are 7 columns in the tibble.
+2. The data has 5595063 rows (observations)
+3. The tibble has a dimension of 9 x 8.
+4. The columns start_station_name and end_station name have 848 and 845 unique observations respectively.
+5. The columns start_station_id and end_station_id have 835 and 833 unique observations respectively.
+6. The column rideable_type has 3 unique observations.
+7. The column member_casual has 2 unique observations: casual and member.
+
+# To find out all the 3 unique observations for the rideable_type column:
+unique(all_trips_new$rideable_type)
+
+Before proceeding to analyse the data frame, there are a few problems that we will need to fix:
+1. The data can only be aggregated at the ride-level, which is too granular. We will want to add some additional columns of data -- such as day, month, year -- that provide additional opportunities to aggregate the data. 
+2. We will want to add a calculated field for length of ride since all of the 2021 Divvy Trips data did not have the "tripduration" column. We will add "ride_length" to the entire dataframe for consistency. 
+3. There are some rides where trip duration shows up as negative, including several hundred rides where Divvy took bikes out of circulation for Quality Control reasons. We will want to delete these rides.
+
+# Fix to issue 1: Add columns that list the date, month, day, and year of each ride
+all_trips_new$date <- as.Date(all_trips_new$started_at) #The default format is yyyy-mm-dd
+all_trips_new$month <- format(as.Date(all_trips_new$date), "%m")
+all_trips_new$day <- format(as.Date(all_trips_new$date), "%d")
+all_trips_new$year <- format(as.Date(all_trips_new$date), "%Y")
+all_trips_new$day_of_week <- format(as.Date(all_trips_new$date), "%A")
+
+head(all_trips_new)
+
+# Fix to issue 2: Create ride_length (units = seconds) column by differentiating "ended_at" time and "started_at" time.
+# Note: ride_length is converted from difftime type object to numeric for analysis purposes
+all_trips_new$ride_length <- as.numeric(round(difftime(all_trips_new$ended_at,all_trips_new$started_at, units = c("mins"))))
+
+str(all_trips_new)
+head(all_trips_new)
+
+# Fix to issue 3: Remove "bad" data which includes a few hundred entries when bikes were taken out of docks and checked for quality by Divvy or ride_length was negative
+all_trips_v2 <- all_trips_new[!(all_trips_new$start_station_name == "HQ QR" | all_trips_new$ride_length<0),]
+skim(all_trips_v2)
+
+# Step 4: Conduct Descriptive Analysis
+# Descriptive analysis on ride_length (all figures in seconds)
+summary(all_trips_v2)
+
+# Inspect the average ride time by each day for members vs casual users.
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual + all_trips_v2$day_of_week, FUN = mean)
+
+# Notice that the days of the week are out of order, so we will fix it and run the average ride time by each day for members vs casual users again.
+all_trips_v2$day_of_week <- ordered(all_trips_v2$day_of_week, levels=c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual + all_trips_v2$day_of_week, FUN = mean)
+
+# Tibble on ridership data by membership type and day of the week
+all_trips_v2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>%  # creates weekday field using wday()
+  group_by(member_casual, weekday) %>%  # groups by usertype and weekday
+  summarise(number_of_rides = n()							# calculates the number of rides and average duration 
+  ,average_duration = mean(ride_length)) %>% 		# calculates the average duration
+  arrange(member_casual, weekday)								# sorts
+
+
+# 1. Number of rides by member type and day of week
+all_trips_v2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = number_of_rides, fill = member_casual)) +
+  geom_col(position = "dodge") +
+  labs(title = "Number of Rides by Member Type and Day of Week") + 
+  xlab("Day of Week") +
+  ylab("Number of Rides")
+
+Finding(s):
+- There were more number of rides by members during weekdays and by casuals during weekends
+
+# 2. Average ride duration by member types and day of week.
+all_trips_v2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge") +
+  labs(title = "Average Ride Duration by Member Types and Day of Week", x = "Day of Week", y = "Average Ride Duration")
+
+Finding(s):
+- Casual users have longer averager ride durations as compared to that of members.
+- Both casual users and members have the longest average ride durations on Sundays.
+
+# 3. Monthly average ride duration by membership type.
+all_trips_v2 %>% 
+  group_by(member_casual, month) %>%
+  summarise(number_of_rides = n()							 
+  ,average_duration = mean(ride_length)) %>%
+  arrange(member_casual, month) %>% 
+  ggplot(aes(all_trips_v2, x = month, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge") +
+  labs(title = "Average Ride Duration by Member Types and Month", x = "Month", y = "Average Ride Duration")
+Finding(s):
+- Casual users had longer average ride durations as compared to that of members (this is consistent with the analysis 2).
+- Casual users had the shortest average ride duration in November, while members have the shortest average ride duration in December.
+- Both casual users and members had the longest ride duration in February.
+
+# 4. Number of rides by membership type and rideable type
+all_trips_v2 %>% 
+  group_by(member_casual, rideable_type) %>%
+  summarise(number_of_rides = n()							 
+  ,average_duration = mean(ride_length)) %>%
+  arrange(member_casual, rideable_type) %>% 
+  ggplot(aes(all_trips_v2, x = rideable_type, y = number_of_rides, fill = member_casual)) +
+  geom_col(position = "dodge") +
+  labs(title = "Number of Rides by Member Types and Rideable Type", x = "Rideable Type", y = "Number of Rides")
+Finding(s):
+- Classic bike was the most popular bike among both casual users and members while docked bike was the least popular among both casual users and members
+# 5. Average ride duration by membership type and rideable type
+
+all_trips_v2 %>% 
+  group_by(member_casual, rideable_type) %>%
+  summarise(number_of_rides = n()							 
+  ,average_duration = mean(ride_length)) %>%
+  arrange(member_casual, rideable_type) %>% 
+  ggplot(aes(all_trips_v2, x = rideable_type, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge") +
+  labs(title = "Average Ride Duration by Member Types and Rideable Type", x = "Rideable Type", y = "Average Ride Duration")
+Finding(s):
+- Casual users had the highest average ride duration by docked bike and the lowest average ride duration by electric bike.
+- Members had the highest average ride duration by classic bike and the lowest average ride duration by docked bike.
