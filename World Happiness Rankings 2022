@@ -1,0 +1,46 @@
+# Motivation :
+This file serves as a Python learning process for own use. All credits of the code chunk below go to Bill Cruise on Kaggle.
+https://www.kaggle.com/code/bcruise/world-happiness-rankings-2022
+
+
+## Import library
+import pandas as pd
+
+## Import dataframe
+rankings_df = pd.read_csv('rankings.csv')
+rankings_df
+
+## Overview on dataframe
+rankings_df.describe().T    # 'T' is used to transpose the table
+
+
+
+# Create a choropleth map with Plotly
+
+import plotly.graph_objs as go
+from plotly.offline import iplot
+
+## Define a data object and a color scale
+data = dict(type='choropleth',
+            locations=rankings_df['Country'],
+            locationmode='country names',
+            z=rankings_df['Happiness score'],
+            text=rankings_df['Country'],
+            colorbar={'title': 'Happiness Score'},
+            colorscale=[[0, 'rgb(31,125,180)'],
+                        [0.1, 'rgb(51,160,44)'],
+                        [0.50, 'rgb(255,255,20)'],
+                        [1, 'rgb(210,26,28)']],
+            reversescale = False)
+
+## Define a layout object
+layout = dict(title='World Happiness Rankings 2022',
+              autosize=False,
+              width=800,
+              height=800,
+              geo=dict(showframe=True, projection={'type': 'van der grinten'}))
+
+## Plotting choropleth map
+choromap = go.Figure(data=[data], layout=layout)
+iplot(choromap, validate=False)
+
