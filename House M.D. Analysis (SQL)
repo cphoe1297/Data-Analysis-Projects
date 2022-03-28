@@ -1,0 +1,74 @@
+-- Overview of the dataframe
+SELECT *
+FROM OwnProjects..house_episodes
+
+
+-- To determine the number of distinct directors
+SELECT DISTINCT directed_by
+FROM OwnProjects..house_episodes
+
+
+-- To determine the episodes directed by Hugh Laurie
+SELECT *
+FROM OwnProjects..house_episodes
+WHERE directed_by = 'Hugh Laurie'
+
+
+-- To determine episodes with more than 10000000 us viewers
+SELECT * 
+FROM OwnProjects..house_episodes
+WHERE us_viewers >= 10000000
+ORDER BY us_viewers
+DESC
+
+
+-- To determine the highest number of viewers in each season
+SELECT season,
+--episode_num_in_season,
+-- episode_num_overall,
+--title,
+--directed_by,
+--written_by,
+MAX(CAST(us_viewers AS int)) AS highest_us_viewers
+FROM OwnProjects..house_episodes
+GROUP BY season
+ORDER BY highest_us_viewers
+DESC
+
+-- Joining house_episodes and house_imdb
+SELECT episodes.season, 
+	   episodes.episode_num_in_season,
+	   episodes.episode_num_overall,
+	   episodes.title,
+	   imdb.imdb_rating,
+	   imdb.total_votes,
+	   episodes.directed_by,
+	   episodes.written_by,
+	   episodes.us_viewers
+FROM OwnProjects..house_imdb AS imdb
+JOIN OwnProjects..house_episodes AS episodes
+	 ON episodes.title = imdb.title
+--GROUP BY episodes.season
+ORDER BY episodes.episode_num_overall
+
+
+-- To determine highest imdb rating of each season
+SELECT season, 
+--title,
+MAX(imdb_rating) AS highest_imdb_rating
+FROM OwnProjects..house_imdb
+--JOIN OwnProjects..house_episodes AS episodes
+	 --ON episodes.title = imdb.title
+GROUP BY season--, title
+ORDER BY season
+
+
+-- To determine highest total votes of each season
+SELECT season, 
+--title,
+MAX(total_votes) AS highest_total_votes
+FROM OwnProjects..house_imdb
+--JOIN OwnProjects..house_episodes AS episodes
+	 --ON episodes.title = imdb.title
+GROUP BY season--, title
+ORDER BY season
