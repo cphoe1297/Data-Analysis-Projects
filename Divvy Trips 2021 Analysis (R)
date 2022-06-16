@@ -154,6 +154,7 @@ all_trips_v2 %>%
 Finding(s):
 - There were more number of rides by members during weekdays and by casuals during weekends
 
+
 # 2. Average ride duration by member types and day of week.
 all_trips_v2 %>% 
   mutate(weekday = wday(started_at, label = TRUE)) %>% 
@@ -169,6 +170,7 @@ Finding(s):
 - Casual users have longer averager ride durations as compared to that of members.
 - Both casual users and members have the longest average ride durations on Sundays.
 
+
 # 3. Monthly average ride duration by membership type.
 all_trips_v2 %>% 
   group_by(member_casual, month) %>%
@@ -183,6 +185,7 @@ Finding(s):
 - Casual users had the shortest average ride duration in November, while members have the shortest average ride duration in December.
 - Both casual users and members had the longest ride duration in February.
 
+
 # 4. Number of rides by membership type and rideable type
 all_trips_v2 %>% 
   group_by(member_casual, rideable_type) %>%
@@ -194,6 +197,8 @@ all_trips_v2 %>%
   labs(title = "Number of Rides by Member Types and Rideable Type", x = "Rideable Type", y = "Number of Rides")
 Finding(s):
 - Classic bike was the most popular bike among both casual users and members while docked bike was the least popular among both casual users and members
+
+
 # 5. Average ride duration by membership type and rideable type
 
 all_trips_v2 %>% 
