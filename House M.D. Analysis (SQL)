@@ -35,6 +35,7 @@ GROUP BY season
 ORDER BY highest_us_viewers
 DESC
 
+
 -- Joining house_episodes and house_imdb
 SELECT episodes.season, 
 	   episodes.episode_num_in_season,
