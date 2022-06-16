@@ -52,10 +52,11 @@ JOIN OwnProjects..house_episodes AS episodes
 ORDER BY episodes.episode_num_overall
 
 
--- To determine highest imdb rating of each season
+-- To determine highest and lowest imdb rating of each season
 SELECT season, 
 --title,
-MAX(imdb_rating) AS highest_imdb_rating
+MAX(imdb_rating) AS highest_imdb_rating,
+MIN(imdb_rating) AS lowest_imdb_rating
 FROM OwnProjects..house_imdb
 --JOIN OwnProjects..house_episodes AS episodes
 	 --ON episodes.title = imdb.title
@@ -63,10 +64,11 @@ GROUP BY season--, title
 ORDER BY season
 
 
--- To determine highest total votes of each season
+-- To determine highest and lowest total votes of each season
 SELECT season, 
 --title,
-MAX(total_votes) AS highest_total_votes
+MAX(total_votes) AS highest_total_votes,
+MIN(total_votes) AS lowest_total_votes
 FROM OwnProjects..house_imdb
 --JOIN OwnProjects..house_episodes AS episodes
 	 --ON episodes.title = imdb.title
